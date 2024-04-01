@@ -5,8 +5,8 @@ description = ""
 authors = ["Richard McDonald <rmcd@usgs.gov>"]
 readme = "README.md"
 include =  [
-    "./gridmetetl/data/catalog.parquet",
-    "./gridmetetl/data/cfsv2.json"]
+    "./gridmet_etl/data/catalog.parquet",
+    "./gridmet_etl/data/cfsv2.json"]
 packages = [
     {include="gridmet_etl"}
 ]

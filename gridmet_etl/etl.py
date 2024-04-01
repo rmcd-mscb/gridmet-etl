@@ -115,7 +115,7 @@ class CFSv2ETL:
         # Download netcdf subsetted data
         data_id = "cfsv2_gridmet"
         try:
-           with pkg_resources.open_binary('gridmetetl.data', 'cfsv2.json') as file:
+           with pkg_resources.open_binary('gridmet_etl.data', 'cfsv2.json') as file:
                 cat = pd.read_json(file)
         except Exception as e:
             print(f"Error loading CFSV2 catalog {e}")
@@ -285,15 +285,18 @@ class CFSv2ETL:
                 dst = dst.pint.to({"tmax": "degC", "tmin": "degC"})
                 dst = dst.pint.dequantify()
                 # Converted file name
-                conv_f = self.optpath / f"converted_{self.end_date}_{str(int(n))}.nc"
+                conv_f = self.optpath / f"{self.start_date}_converted_{int(n)}.nc"
                 dst.to_netcdf(conv_f, format="NETCDF4", engine="netcdf4")
-                print(f"converted file writted to {conv_f}")
+                print(f"converted file written to {conv_f}")
+                ensemble_path = self.optpath / "ensembles"
+                if not ensemble_path.exists():
+                    ensemble_path.mkdir()
                 # Fill missing data using nearest neighbor approach.
                 if self.fillmissing:
                     print("filling missing values")
                     response = fill_onhm_ncf(
                         nfile=conv_f,
-                        output_dir=self.optpath,
+                        output_dir=ensemble_path,
                         mfile="filltest.csv",
                         var="tmax",
                         lat="lat",
@@ -302,9 +305,20 @@ class CFSv2ETL:
                         genmap=True,
                     )
                     if not response:
-                        conv_f.rename(self.optpath / f"filled_converted_{self.end_date}.nc")
+                        conv_f.rename(ensemble_path / f"{self.start_date}_filled_converted_{int(n)}.nc")
 
                     print(f"finished filling missing values for ensemble:{n}")
+            print("Cleaning intermediate files.")
+            # Iterate over each item in the directory
+            for item in self.optpath.iterdir():
+                # Check if the item is a file and ends with '.nc'
+                if item.is_file() and item.name.endswith('.nc'):
+                    # Remove the file
+                    try:
+                        item.unlink()
+                        # print(f"Removed: {item}")
+                    except Exception as e:
+                        print(f"Error removing {item}: {e}")
 
 
         elif self.method == 1:
@@ -317,15 +331,18 @@ class CFSv2ETL:
             ds = ds.pint.to({"tmax": "degC", "tmin": "degC"})
             ds = ds.pint.dequantify()
             # Converted file name
-            conv_f = self.optpath / f"converted_{self.end_date}.nc"
+            conv_f = self.optpath / f"{self.start_date}_converted_.nc"
             ds.to_netcdf(conv_f, format="NETCDF4", engine="netcdf4")
-            print(f"converted file writted to {conv_f}")
+            print(f"converted file written to {conv_f}")
+            median_path = self.optpath / "ensemble_median"
+            if not median_path.exists():
+                median_path.mkdir()
             # Fill missing data using nearest neighbor approach.
             if self.fillmissing:
                 print("filling missing values")
                 response = fill_onhm_ncf(
                     nfile=conv_f,
-                    output_dir=self.optpath,
+                    output_dir=median_path,
                     mfile="filltest.csv",
                     var="tmax",
                     lat="lat",
@@ -334,9 +351,20 @@ class CFSv2ETL:
                     genmap=True,
                 )
                 if not response:
-                    conv_f.rename(self.optpath / f"filled_converted_{self.end_date}.nc")
+                    conv_f.rename(median_path / f"{self.end_date}_filled_converted.nc")
 
             print("finished filling missing values")
+            print("Cleaning intermediate files.")
+            # Iterate over each item in the directory
+            for item in self.optpath.iterdir():
+                # Check if the item is a file and ends with '.nc'
+                if item.is_file() and item.name.endswith('.nc'):
+                    # Remove the file
+                    try:
+                        item.unlink()
+                        # print(f"Removed: {item}")
+                    except Exception as e:
+                        print(f"Error removing {item}: {e}")
 
     def read_target_based_on_suffix(self):
         """
@@ -348,7 +376,7 @@ class CFSv2ETL:
 
         if file_suffix == 'parquet':
             # Read the file as a Parquet file
-            self.gdf = pd.read_parquet(self.target_file, engine='auto')
+            self.gdf = gpd.read_parquet(self.target_file) #, engine='auto')
         elif file_suffix == 'shp':
             # Read the file as a shapefile
             self.gdf = gpd.read_file(self.target_file)
@@ -457,7 +485,7 @@ class FpoNHM:
         # Download netcdf subsetted data
         data_id = "gridmet"
         try:
-           with pkg_resources.open_binary('gridmetetl.data', 'catalog.parquet') as file:
+           with pkg_resources.open_binary('gridmet_etl.data', 'catalog.parquet') as file:
                 cat = pd.read_parquet(file)
         except Exception as e:
             print(f"Error loading ClimateR-Catalog: {e}")
@@ -539,7 +567,7 @@ class FpoNHM:
         # Converted file name
         conv_f = self.optpath / f"converted_{self.end_date}.nc"
         ds.to_netcdf(conv_f, format="NETCDF4", engine="netcdf4")
-        print(f"converted file writted to {conv_f}")
+        print(f"converted file written to {conv_f}")
 
         # Fill missing data using nearest neighbor approach.
         if self.fillmissing:

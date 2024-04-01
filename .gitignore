@@ -1,3 +1,5 @@
+gridmet_etl/__pycache__/
+.vscode/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
