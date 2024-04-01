@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "gridmet-etl"
+version = "0.1.0"
+description = ""
+authors = ["Richard McDonald <rmcd@usgs.gov>"]
+readme = "README.md"
+include =  [
+    "./gridmetetl/data/catalog.parquet",
+    "./gridmetetl/data/cfsv2.json"]
+packages = [
+    {include="gridmet_etl"}
+]
+# Script entry points
+[tool.poetry.scripts]
+gridmetetl = "gridmet_etl.cli:main"
+# fillncf = "gridmetetl.clis.fillncf:fillncf"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+gdptools = "^0.2.7"
+geopandas = "^0.14.1"
+netcdf4 = "^1.6.5"
+numpy = "^1.26.2"
+pandas = "^2.1.3"
+pint-xarray = "^0.3"
+shapely = "^2.0.2"
+urllib3 = "^2.1.0"
+xarray = "^2023.11.0"
+xmltodict = "^0.13.0"
+cyclopts = "^2.5.0"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.25.1"
+pipreqs = "^0.4.13"
+jupyter-bokeh = "^3.0.7"
+hvplot = "^0.9.1"
+jupyter-server-proxy = "^4.1.0"
+matplotlib = "^3.8.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
