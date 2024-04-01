@@ -412,7 +412,7 @@ class FpoNHM:
     def initialize(
         self,
         partial,
-        iptpath,
+        target_file,
         optpath,
         weights_file,
         feature_id,
@@ -425,10 +425,10 @@ class FpoNHM:
         Initialize the fp_ohm class:
             1) initialize geopandas dataframe of concatenated hru_shapefiles
             2) initialize climate data using xarray
-        :param iptpath: Input path, downloaded gridmet files will be saved here.  Must also contain shapefile used to
+        :param target_file: Input path, downloaded gridmet files will be saved here.  Must also contain shapefile used to
                         generate the weights file.
         :param optpath: Path to write newly generated netcdf file containing values for vars for each HRU
-        :param weights_file: Weights file, based on shapefile in iptpath that was used to generate weights file
+        :param weights_file: Weights file, based on shapefile in target_file that was used to generate weights file
         :param start_date: if extraction type date then start date in 'YYYY-MM-DD"
         :param end_date: if extraction type date then end date in 'YYYY-MM-DD"
         :param fileprefix: String to add to both downloaded gridment data and mapped hru file
@@ -438,11 +438,11 @@ class FpoNHM:
         self.feature_id = feature_id
         self.partial = partial
         self.fillmissing = fillmissing
-        self.iptpath = Path(iptpath)
-        if self.iptpath.exists():
-            print(f"input path exists {self.iptpath}", flush=True)
+        self.target_file = target_file
+        if Path(self.target_file).exists():
+            print(f"input path exists {self.target_file}", flush=True)
         else:
-            sys.exit(f"Input Path does not exist: {self.iptpath} - EXITING")
+            sys.exit(f"Input Path does not exist: {self.target_file} - EXITING")
 
         self.optpath = Path(optpath)
         if self.optpath.exists():
@@ -471,15 +471,14 @@ class FpoNHM:
         # # filenames = sorted(glob.glob('*.shp'))
         # # use pathlib glob
         # # glob is here because original nhm had multiple shapefiles
-        # filenames = sorted(self.iptpath.glob("*.shp"))
+        # filenames = sorted(self.target_file.glob("*.shp"))
         # self.gdf = pd.concat(
         #     [geopandas.read_file(f) for f in filenames], sort=True
         # ).pipe(geopandas.GeoDataFrame)
         # self.gdf.reset_index(drop=True, inplace=True)
 
-        self.gdf = gpd.read_file(self.iptpath)
-
-        print(f"The source file: {self.iptpath}", flush=True)
+        self.read_target_based_on_suffix()
+        print(f"The source file: {self.target_file}", flush=True)
         print(f"the shapefile header is: {self.gdf.head()}", flush=True)
 
         # Download netcdf subsetted data
@@ -565,7 +564,7 @@ class FpoNHM:
         }
         ds["humidity"].attrs = h_attrs
         # Converted file name
-        conv_f = self.optpath / f"converted_{self.end_date}.nc"
+        conv_f = self.optpath / f"{self.start_date}_converted.nc"
         ds.to_netcdf(conv_f, format="NETCDF4", engine="netcdf4")
         print(f"converted file written to {conv_f}")
 
@@ -583,9 +582,20 @@ class FpoNHM:
                 genmap=True,
             )
             if not response:
-                conv_f.rename(self.optpath / f"filled_converted_{self.end_date}.nc")
+                conv_f.rename(self.optpath / f"{self.start_date}_converted_filled.nc")
 
             print("finished filling missing values")
+            print("Cleaning intermediate files.")
+            # Iterate over each item in the directory
+            for item in self.optpath.iterdir():
+                # Check if the item is a file and ends with '.nc'
+                if item.is_file() and item.name.endswith('.nc') and "filled" not in item.name:
+                    # Remove the file
+                    try:
+                        item.unlink()
+                        # print(f"Removed: {item}")
+                    except Exception as e:
+                        print(f"Error removing {item}: {e}")
     
     def read_target_based_on_suffix(self):
         """
@@ -593,13 +603,13 @@ class FpoNHM:
             If the file has a '.parquet' extension, it reads it as a Parquet file.
             If the file has a '.shp' extension, it reads it as a shapefile.
         """
-        file_suffix = self.iptpath.lower().split('.')[-1]
+        file_suffix = self.target_file.lower().split('.')[-1]
 
         if file_suffix == 'parquet':
             # Read the file as a Parquet file
-            self.gdf = pd.read_parquet(self.iptpath, engine='auto')
+            self.gdf = gpd.read_parquet(self.target_file)  #, engine='auto')
         elif file_suffix == 'shp':
             # Read the file as a shapefile
-            self.gdf = gpd.read_file(self.iptpath)
+            self.gdf = gpd.read_file(self.target_file)
         else:
             print(f"Unsupported file format: {file_suffix}. Please provide a Parquet or shapefile.")
