@@ -87,7 +87,11 @@ def fill_onhm_ncf(
             )
 
     oldfile = Path(nfile)
-    newfile = odir / f"{oldfile.name[:-3]}_filled.nc"
+    # Split the filename into the base name and extension
+    base_name, extension = oldfile.stem, oldfile.suffix
+    new_base_name = base_name.replace("converted_", "converted_filled_")
+    newfile = odir / (new_base_name + extension)
+    # newfile = odir / f"{oldfile.name[:-3]}_filled.nc"
 
     # write new netcdf file with _filled appended to existing filename
     encoding = {}

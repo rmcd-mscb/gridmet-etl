@@ -2,7 +2,7 @@
 
 from cyclopts import App, Group, Parameter, validators
 from typing_extensions import Annotated
-from gridmet_etl.etl import FpoNHM, CFSv2ETL
+from gridmet_etl.etl import GridMetETL, CFSv2ETL
 import argparse
 import sys
 import datetime
@@ -118,19 +118,19 @@ def gridmet_etl(
         Exception: For any other issues that arise during the processing of the data.
     """
     print("starting Script", flush=True)
-    fp = FpoNHM()
+    fp = GridMetETL()
     print(f"Partial = {partial}")
     print("instantiated", flush=True)
     try:
         fp.initialize(
-            partial,
-            target_file,
-            output_path,
-            weight_file,
-            fid,
+            target_file=target_file,
+            optpath=output_path,
+            weights_file=weight_file,
+            feature_id=fid,
             start_date=start_date,
             end_date=end_date,
             fileprefix=file_prefix,
+            partial=partial,
             fillmissing=fill_missing,
         )
         print("initalized\n", flush=True)
