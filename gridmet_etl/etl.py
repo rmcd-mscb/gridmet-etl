@@ -30,10 +30,13 @@ def shutdown_existing_cluster():
     except ValueError:
         # If get_client() raises a ValueError, no existing client was found
         print("No existing Dask cluster found.")
-
-
-os.environ["USE_PYGEOS"] = "0"
-
+def check_path(path: str, msg: str) -> Path:
+    path_obj = Path(path)
+    if path_obj.exists():
+        print(f"{msg}:{path} exists")
+        return path_obj
+    else:
+        sys.exit(f"{msg} does not exist: {path} - EXITING")
 
 class CFSv2ETL:
     """Class for fetching gridmet version of cfsv2 and interpolating to netcdf."""
@@ -83,30 +86,16 @@ class CFSv2ETL:
         self.partial = partial
         self.fillmissing = fillmissing
         self.method = method
-        self.target_file = target_file
+        self.target_file = check_path(target_file, "Target file path")
         self.feature_id = feature_id
         self.fileprefix = fileprefix
-        if Path(self.target_file).exists():
-            print(f"input path exists {self.target_file}", flush=True)
-        else:
-            sys.exit(f"Input Path does not exist: {self.target_file} - EXITING")
-
-        self.optpath = Path(optpath)
-        if self.optpath.exists():
-            print("output path exists", flush=True)
-        else:
-            sys.exit(f"Output Path does not exist: {self.optpath} - EXITING")
-
-        self.wghts_file = Path(weights_file)
-        if self.wghts_file.exists():
-            print("weights file exists", self.wghts_file, flush=True)
-        else:
-            sys.exit(f"Weights file does not exist: {self.wghts_file} - EXITING")
-
+        self.optpath = check_path(optpath, "Output Path")
+        self.wghts_file = check_path(weights_file, "Weights file path")
+        
         print(Path.cwd())
 
         self.read_target_based_on_suffix()
-        print(f"The source file: {self.target_file}", flush=True)
+        print(f"The target file: {self.target_file}", flush=True)
         print(f"the shapefile header is: {self.gdf.head()}", flush=True)
 
         # Download netcdf subsetted data
@@ -344,7 +333,8 @@ class CFSv2ETL:
         If the file has a '.parquet' extension, it reads it as a Parquet file.
         If the file has a '.shp' extension, it reads it as a shapefile.
         """
-        file_suffix = self.target_file.lower().split(".")[-1]
+        # file_suffix = self.target_file.lower().split(".")[-1]
+        file_suffix = self.target_file.suffix.lower()[1:]
 
         if file_suffix == "parquet":
             # Read the file as a Parquet file
@@ -413,23 +403,10 @@ class GridMetETL:
         self.feature_id = feature_id
         self.partial = partial
         self.fillmissing = fillmissing
-        self.target_file = target_file
-        if Path(self.target_file).exists():
-            print(f"input path exists {self.target_file}", flush=True)
-        else:
-            sys.exit(f"Input Path does not exist: {self.target_file} - EXITING")
-
-        self.optpath = Path(optpath)
-        if self.optpath.exists():
-            print("output path exists", flush=True)
-        else:
-            sys.exit(f"Output Path does not exist: {self.optpath} - EXITING")
-
-        self.wghts_file = Path(weights_file)
-        if self.wghts_file.exists():
-            print("weights file exists", self.wghts_file, flush=True)
-        else:
-            sys.exit(f"Weights file does not exist: {self.wghts_file} - EXITING")
+        # Check input paths
+        self.target_file = check_path(target_file, "Target file")
+        self.optpath = check_path(optpath, "Output path")
+        self.wghts_file = check_path(weights_file, "Weights file")
 
         self.start_date = start_date
         self.end_date = end_date
@@ -596,8 +573,8 @@ class GridMetETL:
         If the file has a '.parquet' extension, it reads it as a Parquet file.
         If the file has a '.shp' extension, it reads it as a shapefile.
         """
-        file_suffix = self.target_file.lower().split(".")[-1]
-
+        # file_suffix = self.target_file.lower().split(".")[-1]
+        file_suffix = self.target_file.suffix.lower()[1:]
         if file_suffix == "parquet":
             # Read the file as a Parquet file
             self.gdf = gpd.read_parquet(self.target_file)  # , engine='auto')
