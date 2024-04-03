@@ -276,7 +276,7 @@ class CFSv2ETL:
         if not response:
             new_name = (
                 output_dir
-                / f"{self.start_date}_filled_converted_{int(n) if self.method == 2 else ''}.nc"
+                / f"{self.start_date}_filled_converted_{int(n) if self.method == 2 else 'median'}.nc"
             )
             conv_f.rename(new_name)
         print(
@@ -316,13 +316,13 @@ class CFSv2ETL:
             for n in ds.ens.values:
                 dst = ds.sel(ens=n)
                 conv_f = self.optpath / f"{self.start_date}_converted_{int(n)}.nc"
-                ensemble_path = self.ensure_directory(self.optpath / "ensembles")
+                ensemble_path = self.ensure_directory(self.optpath / "ensembles" / self.start_date)
                 self.process_dataset(
                     dst, var_rename, feature_id_rename, conv_f, ensemble_path
                 )
         elif self.method == 1:
             conv_f = self.optpath / f"{self.start_date}_converted_.nc"
-            median_path = self.ensure_directory(self.optpath / "ensemble_median")
+            median_path = self.ensure_directory(self.optpath / "ensemble_median" / self.start_date)
             self.process_dataset(ds, var_rename, feature_id_rename, conv_f, median_path)
 
         self.clean_intermediate_files()
