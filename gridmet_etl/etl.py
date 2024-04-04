@@ -34,9 +34,11 @@ def ensure_directory(path):
         path = Path(path)  # Ensure `path` is a Path object
         if not path.exists():
             path.mkdir()
+            print(f"Creating new path: {path}", flush=True)
+        print(f"{Path} already exists", flush=True)
         return path
     except PermissionError:
-        print(f"Permission denied: Unable to create directory at {path}")
+        print(f"Permission denied: Unable to create directory at {path}", flush=True)
 
 
 def shutdown_existing_cluster():
@@ -186,7 +188,9 @@ class CFSv2ETL:
         self.ensemble_path = ensure_directory(
             self.optpath / "ensembles" / self.start_date
         )
-        self.median_path = ensure_directory(self.optpath / "median" / self.start_date)
+        print(f"Ensemble path is {self.ensemble_path}: exists: {self.ensemble_path.exists()}")
+        self.median_path = ensure_directory(self.optpath / "ensemble_median" / self.start_date)
+        print(f"Median path is {self.median_path}: exists: {self.median_path.exists()}")
 
         return True
 
