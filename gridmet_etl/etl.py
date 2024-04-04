@@ -1,6 +1,7 @@
 """Main module."""
 
 import os
+from typing import List
 import geopandas as gpd
 import pint_xarray
 import pandas as pd
@@ -16,7 +17,35 @@ from distributed import Client, get_client
 import numpy as np
 
 
+def ensure_directory(path):
+    """
+    Ensure that a directory exists at the given path.
+
+    Args:
+        path: The path to the directory.
+
+    Returns:
+        Path: The Path object of the directory.
+
+    Raises:
+        PermissionError: If permission is denied to create the directory.
+    """
+    try:
+        path = Path(path)  # Ensure `path` is a Path object
+        if not path.exists():
+            path.mkdir()
+        return path
+    except PermissionError:
+        print(f"Permission denied: Unable to create directory at {path}")
+
+
 def shutdown_existing_cluster():
+    """
+    Shut down an existing Dask cluster if one is found.
+
+    Raises:
+        ValueError: If no existing Dask cluster is found.
+    """
     try:
         # Attempt to get a reference to an existing cluster
         client = get_client()
@@ -30,7 +59,22 @@ def shutdown_existing_cluster():
     except ValueError:
         # If get_client() raises a ValueError, no existing client was found
         print("No existing Dask cluster found.")
+
+
 def check_path(path: str, msg: str) -> Path:
+    """
+    Check if a given path exists.
+
+    Args:
+        path (str): The path to check.
+        msg (str): Message to display.
+
+    Returns:
+        Path: The Path object if it exists.
+
+    Raises:
+        SystemExit: If the path does not exist.
+    """
     path_obj = Path(path)
     if path_obj.exists():
         print(f"{msg}:{path} exists")
@@ -38,8 +82,13 @@ def check_path(path: str, msg: str) -> Path:
     else:
         sys.exit(f"{msg} does not exist: {path} - EXITING")
 
+
 class CFSv2ETL:
-    """Class for fetching gridmet version of cfsv2 and interpolating to netcdf."""
+    """Class for fetching gridmet version of cfsv2 and interpolating to netcdf.
+
+    file location: <http://thredds.northwestknowledge.net:8080/thredds/catalog/
+        NWCSC_INTEGRATED_SCENARIOS_ALL_CLIMATE/cfsv2_metdata_90day/catalog.html>
+    """
 
     def __init__(self):
         self.cfsv2_vars = {
@@ -65,17 +114,17 @@ class CFSv2ETL:
         fillmissing: bool = False,
     ):
         """
-        Initialize the CFSv2ETL class with specified parameters and validate file paths.
+        Initialize the ETL process with the provided parameters.
 
         Args:
-            target_file (str): Input path where downloaded gridmet files will be saved.
-            optpath (str): Path to write the newly generated netcdf file containing values for variables for each HRU.
-            weights_file (str): Path to the weights file based on the geometry file used to generate the weights file.
-            feature_id (str): Identifier for the feature.
-            method (int, optional): Method for initialization. Defaults to 1.
-            fileprefix (str, optional): String to add to both downloaded gridmet data and mapped HRU file.
-            partial (bool, optional): Indicates if the process is partial or complete. Defaults to False.
-            fillmissing (bool, optional): Indicates if missing values should be filled. Defaults to False.
+            target_file (str): The path to the target file or the target geodataframe as .shp or .parquet.
+            optpath (str): The output path root.
+            weights_file (str): The path to the weights file.
+            feature_id (str): The feature ID.
+            method (int, optional): The method to use. Defaults to None.
+            fileprefix (str, optional): The file prefix. Defaults to "".
+            partial (bool, optional): Whether to enable partial processing. Defaults to False.
+            fillmissing (bool, optional): Whether to fill missing values. Defaults to False.
 
         Returns:
             bool: True if initialization is successful, False otherwise.
@@ -91,7 +140,7 @@ class CFSv2ETL:
         self.fileprefix = fileprefix
         self.optpath = check_path(optpath, "Output Path")
         self.wghts_file = check_path(weights_file, "Weights file path")
-        
+
         print(Path.cwd())
 
         self.read_target_based_on_suffix()
@@ -133,6 +182,12 @@ class CFSv2ETL:
         self.start_date = first_date_str
         self.end_date = last_date_str
 
+        # Create working directories
+        self.ensemble_path = ensure_directory(
+            self.optpath / "ensembles" / self.start_date
+        )
+        self.median_path = ensure_directory(self.optpath / "median" / self.start_date)
+
         return True
 
     def run_weights(self):
@@ -160,11 +215,23 @@ class CFSv2ETL:
         return True
 
     def initialize_client_if_needed(self):
+        """
+        Initialize a Dask client if the method is 1.
+        """
         if self.method == 1:
             client = Client()
             print(client.dashboard_link)
 
-    def process_key(self, key):
+    def process_key(self, key: str):
+        """
+        Process the specified key based on the method chosen.
+
+        Args:
+            key (str): The key to process.
+
+        Returns:
+            The result of processing the key according to the selected method.
+        """
         print(f"Processing {key}")
         cat = self.cat_dict[key]
         dst = self.open_and_chunk_dataset(cat)
@@ -174,7 +241,16 @@ class CFSv2ETL:
         else:
             return self.process_method_1(dst, cat, key)
 
-    def open_and_chunk_dataset(self, cat):
+    def open_and_chunk_dataset(self, cat: dict):
+        """
+        Open and chunk the dataset based on the provided catalog information.
+
+        Args:
+            cat (dict): The catalog information.
+
+        Returns:
+            xarray.Dataset: The opened and chunked dataset.
+        """
         return xr.open_dataset(
             cat.get("URL"),
             chunks={
@@ -185,7 +261,18 @@ class CFSv2ETL:
             },
         )
 
-    def process_method_1(self, dst, cat, key):
+    def process_method_1(self, dst: xr.Dataset, cat: dict, key: str) -> Path:
+        """
+        Process the median ensemble data.
+
+        Args:
+            dst (xr.Dataset): The dataset to process.
+            cat (dict): The catalog information.
+            key (str): The key for processing.
+
+        Returns:
+            Path: The file path of the processed data.
+        """
         median = dst[key].median(dim="ens")
         median.attrs = dst[key].attrs
         median_computed = median.compute().transpose("time", "lat", "lon")
@@ -197,7 +284,18 @@ class CFSv2ETL:
 
         return f_path
 
-    def process_method_2(self, dst, cat, key):
+    def process_method_2(self, dst: xr.Dataset, cat: dict, key: str) -> xr.Dataset:
+        """
+        Process the ensemble data.
+
+        Args:
+            dst (xr.Dataset): The dataset to process.
+            cat (dict): The catalog information.
+            key (str): The key for processing.
+
+        Returns:
+            xr.Dataset: The combined dataset after processing.
+        """
         ens_list = self.process_ensemble(dst, cat, key)
         datasets = [xr.open_dataset(file) for file in ens_list]
         combined_ds = xr.concat(datasets, dim="ens", combine_attrs="override")
@@ -205,11 +303,22 @@ class CFSv2ETL:
 
         return combined_ds
 
-    def process_ensemble(self, dst, cat, key):
+    def process_ensemble(self, dst: xr.Dataset, cat: dict, key: str) -> List[Path]:
+        """
+        Process the ensemble data for a specific key.
+
+        Args:
+            dst (xr.Dataset): The dataset to process.
+            cat (dict): The catalog information.
+            key (str): The key for processing.
+
+        Returns:
+            List[Path]: A list of paths to the processed ensemble data files.
+        """
         ens_list = []
         for n in dst.ens.values:
             new_ds = dst.sel(ens=n).transpose("time", "lat", "lon")
-            user_data = self.create_user_cat_data(new_ds, cat, key, ensemble=n)
+            user_data = self.create_user_cat_data(new_ds, cat, key)
             agg_gen = self.create_agg_gen(user_data, key, ensemble=n)
             _ngdf, _ds_out = agg_gen.calculate_agg()
             ens_list.append(f"{self.optpath}/{self.fileprefix}{key}_{int(n)}.nc")
@@ -217,7 +326,18 @@ class CFSv2ETL:
         self.proc_median_files.extend(ens_list)
         return ens_list
 
-    def create_user_cat_data(self, ds, cat, key, ensemble=None):
+    def create_user_cat_data(self, ds: xr.Dataset, cat: dict, key: str) -> UserCatData:
+        """
+        Create UserCatData object based on the provided dataset and catalog information.
+
+        Args:
+            ds (xr.Dataset): The dataset to use.
+            cat (dict): The catalog information.
+            key (str): The key for the data.
+
+        Returns:
+            UserCatData: The created UserCatData object.
+        """
         return UserCatData(
             ds=ds,
             proj_ds=cat.get("crs"),
@@ -232,6 +352,17 @@ class CFSv2ETL:
         )
 
     def create_agg_gen(self, user_data, key, ensemble=None):
+        """
+        Create an AggGen object for weighted aggregation.
+
+        Args:
+            user_data: The user data for aggregation.
+            key: The key for the data.
+            ensemble: The ensemble number if applicable.
+
+        Returns:
+            AggGen: The AggGen object for weighted aggregation.
+        """
         file_suffix = f"_{int(ensemble)}" if ensemble is not None else ""
         return AggGen(
             user_data=user_data,
@@ -244,8 +375,25 @@ class CFSv2ETL:
         )
 
     def process_dataset(
-        self, ds, var_rename, feature_id_rename, conversion_path, fill_path, n=0
+        self,
+        ds: xr.Dataset,
+        var_rename: dict,
+        feature_id_rename: dict,
+        conversion_path: Path,
+        fill_path: Path,
+        n: int = 0,
     ):
+        """
+        Process the dataset by renaming variables, converting units, and writing to a NetCDF file.
+
+        Args:
+            ds (xr.Dataset): The dataset to process.
+            var_rename (dict): Dictionary for renaming variables.
+            feature_id_rename (dict): Dictionary for renaming feature IDs.
+            conversion_path (Path): The path for the converted NetCDF file.
+            fill_path (Path): The path output the file generated from filling missing values, This is the final file.
+            n (int, optional): The ensemble number. Defaults to 0.
+        """
         ds = (
             ds.rename_vars(var_rename)
             .rename_dims(feature_id_rename)
@@ -261,7 +409,15 @@ class CFSv2ETL:
         if self.fillmissing:
             self.fill_missing_values(conversion_path, fill_path, n)
 
-    def fill_missing_values(self, conv_f, output_dir, n=0):
+    def fill_missing_values(self, conv_f: Path, output_dir: Path, n: int=0) -> None:
+        """
+        Fill missing values in the converted file and handle renaming if necessary.
+
+        Args:
+            conv_f (Path): The path to the converted file.
+            output_dir (Path): The output directory for the filled file.
+            n (int, optional): The ensemble number. Defaults to 0.
+        """
         print("filling missing values")
         response = fill_onhm_ncf(
             nfile=conv_f,
@@ -279,11 +435,17 @@ class CFSv2ETL:
                 / f"{self.start_date}_filled_converted_{int(n) if self.method == 2 else 'median'}.nc"
             )
             conv_f.rename(new_name)
+            print(f"No missing values, converted file renamed to: {new_name}")
         print(
             f"finished filling missing values for {f'ensemble:{str(n)}' if self.method == 2 else 'median'}"
         )
 
     def clean_intermediate_files(self):
+        """
+        Clean up intermediate files in the specified directory.
+
+        This function iterates over the files in the directory and removes any files with the '.nc' extension.
+        """
         print("Cleaning intermediate files.")
         for item in self.optpath.iterdir():
             if item.is_file() and item.name.endswith(".nc"):
@@ -291,11 +453,6 @@ class CFSv2ETL:
                     item.unlink()
                 except Exception as e:
                     print(f"Error removing {item}: {e}")
-
-    def ensure_directory(self, path):
-        if not path.exists():
-            path.mkdir()
-        return path
 
     def finalize(self) -> None:
         """
@@ -316,14 +473,16 @@ class CFSv2ETL:
             for n in ds.ens.values:
                 dst = ds.sel(ens=n)
                 conv_f = self.optpath / f"{self.start_date}_converted_{int(n)}.nc"
-                ensemble_path = self.ensure_directory(self.optpath / "ensembles" / self.start_date)
+                # ensemble_path = self.ensure_directory(self.optpath / "ensembles" / self.start_date)
                 self.process_dataset(
-                    dst, var_rename, feature_id_rename, conv_f, ensemble_path
+                    dst, var_rename, feature_id_rename, conv_f, self.ensemble_path
                 )
         elif self.method == 1:
             conv_f = self.optpath / f"{self.start_date}_converted_.nc"
-            median_path = self.ensure_directory(self.optpath / "ensemble_median" / self.start_date)
-            self.process_dataset(ds, var_rename, feature_id_rename, conv_f, median_path)
+            # median_path = self.ensure_directory(self.optpath / "ensemble_median" / self.start_date)
+            self.process_dataset(
+                ds, var_rename, feature_id_rename, conv_f, self.median_path
+            )
 
         self.clean_intermediate_files()
 
@@ -459,7 +618,7 @@ class GridMetETL:
 
         Args:
             self: The instance of the class.
-            
+
         Returns:
             tuple: A tuple containing the new GeoDataFrame (ngdf) and the output dataset (ds_out).
         """
