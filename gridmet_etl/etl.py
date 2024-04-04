@@ -1,7 +1,7 @@
 """Main module."""
 
 import os
-from typing import List
+from typing import List, Union
 import geopandas as gpd
 import pint_xarray
 import pandas as pd
@@ -190,7 +190,7 @@ class CFSv2ETL:
 
         return True
 
-    def run_weights(self):
+    def run_weights(self) -> bool:
         """
         Run the weighted aggregation process for each key in the catalog dictionary.
 
@@ -222,7 +222,7 @@ class CFSv2ETL:
             client = Client()
             print(client.dashboard_link)
 
-    def process_key(self, key: str):
+    def process_key(self, key: str) -> Union[xr.Dataset, Path]:
         """
         Process the specified key based on the method chosen.
 
@@ -230,7 +230,7 @@ class CFSv2ETL:
             key (str): The key to process.
 
         Returns:
-            The result of processing the key according to the selected method.
+            Union[xr.Dataset, Path]: The result of processing the key according to the selected method.
         """
         print(f"Processing {key}")
         cat = self.cat_dict[key]
@@ -241,7 +241,7 @@ class CFSv2ETL:
         else:
             return self.process_method_1(dst, cat, key)
 
-    def open_and_chunk_dataset(self, cat: dict):
+    def open_and_chunk_dataset(self, cat: dict) -> None:
         """
         Open and chunk the dataset based on the provided catalog information.
 
@@ -351,14 +351,14 @@ class CFSv2ETL:
             period=[self.start_date, self.end_date],
         )
 
-    def create_agg_gen(self, user_data, key, ensemble=None):
+    def create_agg_gen(self, user_data: UserCatData, key: str, ensemble: int=None) -> AggGen:
         """
         Create an AggGen object for weighted aggregation.
 
         Args:
-            user_data: The user data for aggregation.
-            key: The key for the data.
-            ensemble: The ensemble number if applicable.
+            user_data (UserCatData): The user data for aggregation.
+            key (str): The key for the data.
+            ensemble (int, optional): The ensemble number. Defaults to None.
 
         Returns:
             AggGen: The AggGen object for weighted aggregation.
@@ -382,7 +382,7 @@ class CFSv2ETL:
         conversion_path: Path,
         fill_path: Path,
         n: int = 0,
-    ):
+    ) -> None:
         """
         Process the dataset by renaming variables, converting units, and writing to a NetCDF file.
 
