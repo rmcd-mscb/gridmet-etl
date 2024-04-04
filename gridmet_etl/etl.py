@@ -33,12 +33,12 @@ def ensure_directory(path):
     try:
         path = Path(path)  # Ensure `path` is a Path object
         if not path.exists():
-            path.mkdir()
+            path.mkdir(parents=True, exist_ok=True)
             print(f"Creating new path: {path}", flush=True)
         print(f"{Path} already exists", flush=True)
         return path
-    except PermissionError:
-        print(f"Permission denied: Unable to create directory at {path}", flush=True)
+    except PermissionError as e:
+        print(f"Error {e}, Permission denied: Unable to create directory at {path}", flush=True)
 
 
 def shutdown_existing_cluster():
