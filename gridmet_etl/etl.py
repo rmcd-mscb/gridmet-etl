@@ -35,7 +35,7 @@ def ensure_directory(path):
         if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
             print(f"Creating new path: {path}", flush=True)
-        print(f"{Path} already exists", flush=True)
+        print(f"{path} already exists", flush=True)
         return path
     except PermissionError as e:
         print(f"Error {e}, Permission denied: Unable to create directory at {path}", flush=True)
