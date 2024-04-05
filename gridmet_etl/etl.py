@@ -479,7 +479,7 @@ class CFSv2ETL:
                 conv_f = self.optpath / f"{self.start_date}_converted_{int(n)}.nc"
                 # ensemble_path = self.ensure_directory(self.optpath / "ensembles" / self.start_date)
                 self.process_dataset(
-                    dst, var_rename, feature_id_rename, conv_f, self.ensemble_path
+                    dst, var_rename, feature_id_rename, conv_f, self.ensemble_path, n
                 )
         elif self.method == 1:
             conv_f = self.optpath / f"{self.start_date}_converted_.nc"
