@@ -38,7 +38,10 @@ def ensure_directory(path):
         print(f"{path} already exists", flush=True)
         return path
     except PermissionError as e:
-        print(f"Error {e}, Permission denied: Unable to create directory at {path}", flush=True)
+        print(
+            f"Error {e}, Permission denied: Unable to create directory at {path}",
+            flush=True,
+        )
 
 
 def shutdown_existing_cluster():
@@ -188,8 +191,12 @@ class CFSv2ETL:
         self.ensemble_path = ensure_directory(
             self.optpath / "ensembles" / self.start_date
         )
-        print(f"Ensemble path is {self.ensemble_path}: exists: {self.ensemble_path.exists()}")
-        self.median_path = ensure_directory(self.optpath / "ensemble_median" / self.start_date)
+        print(
+            f"Ensemble path is {self.ensemble_path}: exists: {self.ensemble_path.exists()}"
+        )
+        self.median_path = ensure_directory(
+            self.optpath / "ensemble_median" / self.start_date
+        )
         print(f"Median path is {self.median_path}: exists: {self.median_path.exists()}")
 
         return True
@@ -277,8 +284,9 @@ class CFSv2ETL:
         Returns:
             Path: The file path of the processed data.
         """
-        median = dst[key].median(dim="ens")
-        median.attrs = dst[key].attrs
+        ds = self.subset_xarray_by_geodf_bounds(xr_dataset=dst, cat=cat)
+        median = ds[key].median(dim="ens")
+        median.attrs = ds[key].attrs
         median_computed = median.compute().transpose("time", "lat", "lon")
 
         user_data = self.create_user_cat_data(median_computed.to_dataset(), cat, key)
@@ -287,6 +295,40 @@ class CFSv2ETL:
         _ngdf, _ds_out = agg_gen.calculate_agg()
 
         return f_path
+
+    def subset_xarray_by_geodf_bounds(self, xr_dataset, cat):
+        """
+        Subsets an xarray dataset to the bounds of a GeoPandas DataFrame using dynamic dimension names.
+
+        Args:
+        xr_dataset (xr.Dataset): The xarray dataset to be subset.
+        gdf (gpd.GeoDataFrame): The GeoDataFrame whose bounds will be used to subset the dataset.
+        cat (object): An object that provides dimension names dynamically, typically using a .get() method.
+
+        Returns:
+        xr.Dataset: A subset of the original xarray dataset.
+        """
+        # Get the bounding box coordinates from the GeoDataFrame
+        buffer_deg = 0.04167
+        minx, miny, maxx, maxy = self.target_file.to_crs(cat.get("cfs")).total_bounds
+        buffered_minx = minx - buffer_deg
+        buffered_miny = miny - buffer_deg
+        buffered_maxx = maxx + buffer_deg
+        buffered_maxy = maxy + buffer_deg
+
+        # Retrieve dimension names dynamically
+        lat_name = cat.get("Y_name")
+        lon_name = cat.get("X_name")
+
+        # Subset the xarray dataset using .sel method with slice
+        subset_ds = xr_dataset.sel(
+            {
+                lon_name: slice(buffered_minx, buffered_maxx),
+                lat_name: slice(buffered_miny, buffered_maxy),
+            }
+        )
+
+        return subset_ds
 
     def process_method_2(self, dst: xr.Dataset, cat: dict, key: str) -> xr.Dataset:
         """
@@ -355,7 +397,9 @@ class CFSv2ETL:
             period=[self.start_date, self.end_date],
         )
 
-    def create_agg_gen(self, user_data: UserCatData, key: str, ensemble: int=None) -> AggGen:
+    def create_agg_gen(
+        self, user_data: UserCatData, key: str, ensemble: int = None
+    ) -> AggGen:
         """
         Create an AggGen object for weighted aggregation.
 
@@ -413,7 +457,7 @@ class CFSv2ETL:
         if self.fillmissing:
             self.fill_missing_values(conversion_path, fill_path, n)
 
-    def fill_missing_values(self, conv_f: Path, output_dir: Path, n: int=0) -> None:
+    def fill_missing_values(self, conv_f: Path, output_dir: Path, n: int = 0) -> None:
         """
         Fill missing values in the converted file and handle renaming if necessary.
 
