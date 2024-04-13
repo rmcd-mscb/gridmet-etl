@@ -308,9 +308,10 @@ class CFSv2ETL:
         Returns:
         xr.Dataset: A subset of the original xarray dataset.
         """
+        # This method has some hard-coding but this is probably safe because it's focused on a a known dataset.
         # Get the bounding box coordinates from the GeoDataFrame
         buffer_deg = 0.04167
-        minx, miny, maxx, maxy = self.target_file.to_crs(cat.get("cfs")).total_bounds
+        minx, miny, maxx, maxy = self.gdf.to_crs(cat.get("crs")).total_bounds
         buffered_minx = minx - buffer_deg
         buffered_miny = miny - buffer_deg
         buffered_maxx = maxx + buffer_deg
@@ -324,7 +325,7 @@ class CFSv2ETL:
         subset_ds = xr_dataset.sel(
             {
                 lon_name: slice(buffered_minx, buffered_maxx),
-                lat_name: slice(buffered_miny, buffered_maxy),
+                lat_name: slice(buffered_maxy, buffered_miny),
             }
         )
 
