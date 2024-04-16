@@ -8,6 +8,8 @@ import pandas as pd
 import sys
 import xarray as xr
 from gridmet_etl.helper import fill_onhm_ncf
+from gridmet_etl.helper import read_elevation_values
+from gridmet_etl.helper import calculate_relative_humidity
 from pathlib import Path
 from gdptools import AggGen, ClimRCatData
 import importlib.resources as pkg_resources
@@ -105,13 +107,14 @@ class CFSv2ETL:
         }
         self.partial = False
         self.fill_missing = False
-        self.vars = ["tmmx", "tmmn", "pr"]
+        self.vars = ["tmmx", "tmmn", "pr", "sph"]
 
     def initialize(
         self,
         target_file: str,
         optpath: str,
         weights_file: str,
+        elevation_file: str,
         feature_id: str,
         method: int = None,
         fileprefix: str = "",
@@ -141,6 +144,8 @@ class CFSv2ETL:
         self.fillmissing = fillmissing
         self.method = method
         self.target_file = check_path(target_file, "Target file path")
+        self.elev_file = check_path(elevation_file, "Elevation file path")
+        self.elev = np.array(read_elevation_values(self.elev_file))
         self.feature_id = feature_id
         self.fileprefix = fileprefix
         self.optpath = check_path(optpath, "Output Path")
@@ -220,6 +225,7 @@ class CFSv2ETL:
         concat_ds = (
             xr.merge(ds_list) if self.method == 2 else xr.open_mfdataset(ds_list)
         )
+        concat_ds = calculate_relative_humidity(ds=concat_ds, elevations=self.elev)
         concat_ds.to_netcdf(self.optpath / (self.fileprefix + ".nc"))
 
         print(f"Processed files: {self.proc_median_files}")

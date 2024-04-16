@@ -4,7 +4,7 @@ import geopandas as gpd
 from pathlib import Path
 import xarray
 from typing import Optional
-
+import numpy as np
 
 def fill_onhm_ncf(
     nfile: str,
@@ -114,3 +114,70 @@ def fill_onhm_ncf(
     print(encoding)
     data.to_netcdf(path=newfile, encoding=encoding)
     return True
+
+def read_elevation_values(filename):
+    values = []  # List to store the elevation values
+    start_collecting = False  # Flag to start collecting values
+    count_values = 0  # To count the values read
+    
+    with open(filename, 'r') as file:
+        for line in file:
+            stripped_line = line.strip()  # Remove any leading/trailing whitespace
+            
+            if stripped_line == 'hru_elev':
+                # Skip the next four lines after 'hru_elev'
+                for _ in range(4):
+                    next(file)
+                start_collecting = True  # Set flag to start collecting after skipping
+                continue
+            
+            if stripped_line == '####' and start_collecting:
+                break  # Stop reading if we hit #### after starting to collect
+            
+            if start_collecting:
+                try:
+                    # Convert the line to a float and add to the list
+                    value = float(stripped_line)
+                    values.append(value)
+                    count_values += 1
+                except ValueError:
+                    continue  # If conversion fails, skip the line
+        print(f"Read {count_values} elevation values")
+    return values
+
+def pressure_at_elevation(T_avg, elevation):
+    """Calculate atmospheric pressure in hPa at given elevation in meters, using average temperature in Kelvin."""
+    P0 = 1013.25  # sea level standard atmospheric pressure in hPa
+    R = 287.05  # specific gas constant for dry air, J/(kg·K)
+    g = 9.80665  # acceleration due to gravity, m/s^2
+    return P0 * np.exp(-g * elevation / (R * T_avg))
+
+def saturation_vapor_pressure(T):
+    """Calculate saturation vapor pressure in hPa for a temperature in Kelvin."""
+    Tc = T - 273.15  # Convert Kelvin to Celsius
+    # Magnus formula for saturation vapor pressure over water
+    return 6.1094 * np.exp((17.625 * Tc) / (Tc + 243.04))
+
+def calculate_relative_humidity(ds, elevations):
+    T_avg = (ds["tmmx"].values + ds["tmmn"].values)/2.
+    
+    # Calculate pressure at given elevations
+    pressures = pressure_at_elevation(T_avg, elevations)
+    
+    # Calculate saturation vapor pressure using max temperature
+    e_s = saturation_vapor_pressure(T_avg)
+    
+    # Calculate actual vapor pressure
+    e = (ds["sph"] * pressures) / 0.622
+    
+    # Calculate relative humidity
+    rh = (e / e_s) * 100
+    
+    # Add relative humidity to the dataset
+    ds["humidity"] = xarray.DataArray(rh, dims=["time", "nhm_id"], coords={"time": ds.time, "nhm_id": ds.nhm_id})
+    ds["humidity"].attrs = {
+        'units': '%',
+        'long_name': 'Relative Humidity',
+        'description': 'Calculated from specific humidity, max temperature, and elevation using modified pressure estimation'
+    }
+    return ds

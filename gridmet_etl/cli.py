@@ -183,6 +183,14 @@ def cfsv2_etl(
             required=True
         )
     ],
+    model_param_file: Annotated[ 
+        str,
+        Parameter(
+            validator=valid_path,
+            help="path/myparam.param - path/name of model parameter file containing elevation per hru",
+            required = True
+        )
+    ],
     method: Annotated[
         int,
         Parameter(
@@ -214,6 +222,7 @@ def cfsv2_etl(
             target_file=target_file,
             optpath=output_path,
             weights_file=weight_file,
+            elevation_file=model_param_file,
             feature_id=fid,
             method=method,
             fileprefix=file_prefix,
