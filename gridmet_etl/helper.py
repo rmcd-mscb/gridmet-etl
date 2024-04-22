@@ -146,11 +146,28 @@ def read_elevation_values(filename):
     return values
 
 def pressure_at_elevation(T_avg, elevation):
-    """Calculate atmospheric pressure in hPa at given elevation in meters, using average temperature in Kelvin."""
+    """Calculate atmospheric pressure in hPa at given elevation in meters, using average temperature in Kelvin.
+    
+    Args:
+    T_avg (ndarray): 2D or 3D array of average temperatures in Kelvin (can be time x id or ensemble x time x id).
+    elevation (ndarray): Elevation in meters matching the last dimension of T_avg.
+    
+    Returns:
+    ndarray: Atmospheric pressure in hPa, with the same dimensions as T_avg.
+    """
     P0 = 1013.25  # sea level standard atmospheric pressure in hPa
     R = 287.05  # specific gas constant for dry air, J/(kg·K)
     g = 9.80665  # acceleration due to gravity, m/s^2
+    
+    # Reshape elevation to be compatible with T_avg for broadcasting
+    if T_avg.ndim == 3:
+        elevation = elevation[np.newaxis, np.newaxis, :]  # Reshape for (ensemble, time, id)
+    elif T_avg.ndim == 2:
+        elevation = elevation[np.newaxis, :]  # Reshape for (time, id)
+
+    # Compute pressure
     return P0 * np.exp(-g * elevation / (R * T_avg))
+
 
 def saturation_vapor_pressure(T):
     """Calculate saturation vapor pressure in hPa for a temperature in Kelvin."""
@@ -159,25 +176,26 @@ def saturation_vapor_pressure(T):
     return 6.1094 * np.exp((17.625 * Tc) / (Tc + 243.04))
 
 def calculate_relative_humidity(ds, elevations):
-    T_avg = (ds["tmmx"].values + ds["tmmn"].values)/2.
+    T_avg = (ds["tmmx"].values + ds["tmmn"].values) / 2
     
     # Calculate pressure at given elevations
     pressures = pressure_at_elevation(T_avg, elevations)
     
-    # Calculate saturation vapor pressure using max temperature
+    # Calculate saturation vapor pressure using average temperature
     e_s = saturation_vapor_pressure(T_avg)
     
     # Calculate actual vapor pressure
-    e = (ds["sph"] * pressures) / 0.622
+    e = (ds["sph"].values * pressures) / 0.622
     
     # Calculate relative humidity
     rh = (e / e_s) * 100
     
     # Add relative humidity to the dataset
-    ds["humidity"] = xarray.DataArray(rh, dims=["time", "nhm_id"], coords={"time": ds.time, "nhm_id": ds.nhm_id})
+    dims = ds.dims.keys()
+    ds["humidity"] = xarray.DataArray(rh, dims=dims, coords={dim: ds[dim] for dim in dims})
     ds["humidity"].attrs = {
         'units': '%',
         'long_name': 'Relative Humidity',
-        'description': 'Calculated from specific humidity, max temperature, and elevation using modified pressure estimation'
+        'description': 'Calculated from specific humidity, average temperature, and elevation using modified pressure estimation'
     }
     return ds
