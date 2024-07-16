@@ -762,8 +762,11 @@ class GridMetETL:
             genmap=True,
         )
         if not response:
-            conv_f.rename(self.optpath / f"{self.start_date}_converted_filled.nc")
-
+            new_name = (
+                self.optpath / f"{self.start_date}_converted_filled.nc"
+            )
+            conv_f.rename(new_name)
+            print(f"No missing values, converted file renamed to: {new_name}")
         print("finished filling missing values")
         print("Cleaning intermediate files.")
         # Iterate over each item in the directory
