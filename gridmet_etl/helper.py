@@ -168,7 +168,6 @@ def pressure_at_elevation(T_avg, elevation):
     # Compute pressure
     return P0 * np.exp(-g * elevation / (R * T_avg))
 
-
 def saturation_vapor_pressure(T):
     """Calculate saturation vapor pressure in hPa for a temperature in Kelvin."""
     Tc = T - 273.15  # Convert Kelvin to Celsius

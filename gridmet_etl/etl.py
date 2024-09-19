@@ -528,9 +528,9 @@ class CFSv2ETL:
             for n in ds.ens.values:
                 dst = ds.sel(ens=n)
                 conv_f = self.optpath / f"{self.start_date}_converted_{int(n)}.nc"
-                # ensemble_path = self.ensure_directory(self.optpath / "ensembles" / self.start_date)
+                ensemble_n_path = self.ensure_directory(self.ensemble_path / f"ensenble_{int(n)}")
                 self.process_dataset(
-                    dst, var_rename, feature_id_rename, conv_f, self.ensemble_path, n
+                    dst, var_rename, feature_id_rename, conv_f, ensemble_n_path, n
                 )
         elif self.method == 1:
             conv_f = self.optpath / f"{self.start_date}_converted_.nc"
