@@ -20,7 +20,7 @@ def valid_date(_type, value) -> None:
 
 def valid_path(_type, value):
     if Path(value).exists():
-        return value
+        return Path(value)
     else:
         raise argparse.ArgumentTypeError(f"Path does not exist: {value}")
 
@@ -104,9 +104,9 @@ def gridmet_etl(
         start_date (str): The start date for data retrieval in YYYY-MM-DD format. This parameter is required.
         end_date (str): The end date for data retrieval in YYYY-MM-DD format. This parameter is required.
         file_prefix (str): The prefix to be used for naming output files. This should be a valid path. This parameter is required.
-        target_file (str): The path to the input geometry file. This file should contain the target polygon geometries and must be readable by geopandas. This parameter is required.
-        output_path (str): The directory path where the netCDF output files will be saved. This should be a valid path. This parameter is required.
-        weight_file (str): The path to the weight file (typically named 'weight.csv'), which contains weighting information for the data processing. This should be a valid path. This parameter is required.
+        target_file (Path): The path to the input geometry file. This file should contain the target polygon geometries and must be readable by geopandas. This parameter is required.
+        output_path (Path): The directory path where the netCDF output files will be saved. This should be a valid path. This parameter is required.
+        weight_file (Path): The path to the weight file (typically named 'weight.csv'), which contains weighting information for the data processing. This should be a valid path. This parameter is required.
         fid (str): The column identifier in the target file used to identify results. This parameter is required.
 
     Returns:

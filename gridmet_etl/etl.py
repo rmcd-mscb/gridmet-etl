@@ -111,10 +111,10 @@ class CFSv2ETL:
 
     def initialize(
         self,
-        target_file: str,
-        optpath: str,
-        weights_file: str,
-        elevation_file: str,
+        target_file: Path,
+        optpath: Path,
+        weights_file: Path,
+        elevation_file: Path,
         feature_id: str,
         method: int = None,
         fileprefix: str = "",
@@ -125,9 +125,10 @@ class CFSv2ETL:
         Initialize the ETL process with the provided parameters.
 
         Args:
-            target_file (str): The path to the target file or the target geodataframe as .shp or .parquet.
-            optpath (str): The output path root.
-            weights_file (str): The path to the weights file.
+            target_file (Path): The path to the target file or the target geodataframe as .shp or .parquet.
+            optpath (Path): The output path root.
+            weights_file (Path): The path to the weights file.
+            elevation_file(Path): PRMS model param file that contains hru elevations.
             feature_id (str): The feature ID.
             method (int, optional): The method to use. Defaults to None.
             fileprefix (str, optional): The file prefix. Defaults to "".
@@ -143,13 +144,13 @@ class CFSv2ETL:
         self.partial = partial
         self.fillmissing = fillmissing
         self.method = method
-        self.target_file = check_path(target_file, "Target file path")
-        self.elev_file = check_path(elevation_file, "Elevation file path")
+        self.target_file = target_file
+        self.elev_file = elevation_file
         self.elev = np.array(read_elevation_values(self.elev_file))
         self.feature_id = feature_id
         self.fileprefix = fileprefix
-        self.optpath = check_path(optpath, "Output Path")
-        self.wghts_file = check_path(weights_file, "Weights file path")
+        self.optpath = optpath
+        self.wghts_file = weights_file
 
         print(Path.cwd())
 
@@ -226,7 +227,8 @@ class CFSv2ETL:
             xr.merge(ds_list) if self.method == 2 else xr.open_mfdataset(ds_list)
         )
         concat_ds = calculate_relative_humidity(ds=concat_ds, elevations=self.elev)
-        concat_ds.to_netcdf(self.optpath / (self.fileprefix + ".nc"))
+        concat_file = self.optpath / f"{self.fileprefix}.nc"
+        concat_ds.to_netcdf(concat_file)
 
         print(f"Processed files: {self.proc_median_files}")
         return True
@@ -297,7 +299,7 @@ class CFSv2ETL:
 
         user_data = self.create_user_cat_data(median_computed.to_dataset(), cat, key)
         agg_gen = self.create_agg_gen(user_data, key)
-        f_path = self.optpath / (self.fileprefix + key + ".nc")
+        f_path = self.optpath / f"{self.fileprefix}{key}.nc"
         _ngdf, _ds_out = agg_gen.calculate_agg()
 
         return f_path
@@ -374,7 +376,8 @@ class CFSv2ETL:
             user_data = self.create_user_cat_data(new_ds, cat, key)
             agg_gen = self.create_agg_gen(user_data, key, ensemble=n)
             _ngdf, _ds_out = agg_gen.calculate_agg()
-            ens_list.append(f"{self.optpath}/{self.fileprefix}{key}_{int(n)}.nc")
+            ens_file = self.optpath / f"{self.fileprefix}{key}_{int(n)}.nc"
+            ens_list.append(ens_file)
 
         self.proc_median_files.extend(ens_list)
         return ens_list
@@ -519,7 +522,7 @@ class CFSv2ETL:
         Returns:
             None
         """
-        f_path = self.optpath / (self.fileprefix + ".nc")
+        f_path = self.optpath / f"{self.fileprefix}.nc"
         ds = xr.open_dataset(f_path)
         var_rename = {"tmmx": "tmax", "tmmn": "tmin", "pr": "prcp"}
         feature_id_rename = {self.feature_id: "nhru"}
@@ -583,9 +586,9 @@ class GridMetETL:
 
     def initialize(
         self,
-        target_file: str,
-        optpath: str,
-        weights_file: str,
+        target_file: Path,
+        optpath: Path,
+        weights_file: Path,
         feature_id: str,
         start_date: str,
         end_date: str,
@@ -597,9 +600,9 @@ class GridMetETL:
         Initialize the ETL process with specified parameters and validate file paths.
 
         Args:
-            target_file (str): Path to the target file.
-            optpath (str): Path to the output directory.
-            weights_file (str): Path to the weights file.
+            target_file (Path): Path to the target file.
+            optpath (Path): Path to the output directory.
+            weights_file (Path): Path to the weights file.
             feature_id (str): Identifier for the feature.
             start_date (str): Start date for processing.
             end_date (str): End date for processing.
@@ -618,9 +621,9 @@ class GridMetETL:
         self.partial = partial
         self.fillmissing = fillmissing
         # Check input paths
-        self.target_file = check_path(target_file, "Target file")
-        self.optpath = check_path(optpath, "Output path")
-        self.wghts_file = check_path(weights_file, "Weights file")
+        self.target_file = target_file
+        self.optpath = optpath
+        self.wghts_file = weights_file
 
         self.start_date = start_date
         self.end_date = end_date
@@ -715,7 +718,7 @@ class GridMetETL:
             None
         """
         print(Path.cwd(), flush=True)
-        f_path = self.optpath / (self.fileprefix + ".nc")
+        f_path = self.optpath / f"{self.fileprefix}.nc"
         ds = xr.open_dataset(f_path)
         var_rename = {
             "daily_maximum_temperature": "tmax",
