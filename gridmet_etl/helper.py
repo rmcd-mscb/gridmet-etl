@@ -29,8 +29,7 @@ def fill_onhm_ncf(
         lat ((Optional[str], optional): name of Latitude or y coordinate
         lon (Optional[bstrool], optional): Name of Longitude or x coordinate
     """
-    if isinstance(output_dir, str):
-        odir = Path(output_dir)
+    odir = Path(output_dir) if isinstance(output_dir, str) else output_dir
     if not odir.exists():
         print(f"Path: {odir} does not exist")
         exit
@@ -90,7 +89,7 @@ def fill_onhm_ncf(
     oldfile = Path(nfile)
     # Split the filename into the base name and extension
     base_name, extension = oldfile.stem, oldfile.suffix
-    new_base_name = base_name.replace("converted_", "converted_filled_")
+    new_base_name = base_name.replace("converted", "converted_filled_")
     newfile = odir / (new_base_name + extension)
     # newfile = odir / f"{oldfile.name[:-3]}_filled.nc"
 

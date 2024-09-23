@@ -50,7 +50,7 @@ def gridmet_etl(
         )          
     ],
     target_file: Annotated[
-        str,
+        Path,
         Parameter(
             validator=valid_path,
             help="Input geometry file (target polygon geometry file: read by geopandas)",
@@ -58,7 +58,7 @@ def gridmet_etl(
         )
     ],
     output_path: Annotated[
-        str,
+        Path,
         Parameter(
             validator=valid_path,
             help="Output path (location of netcdf output files by shapefile output)",
@@ -66,7 +66,7 @@ def gridmet_etl(
         )
     ],
     weight_file: Annotated[ 
-        str,
+        Path,
         Parameter(
             validator=valid_path,
             help="path/weight.csv - path/name of weight file",
@@ -153,7 +153,7 @@ def cfsv2_etl(
         )          
     ],
     target_file: Annotated[
-        str,
+        Path,
         Parameter(
             validator=valid_path,
             help="Input geometry file (target polygon geometry file: read by geopandas)",
@@ -168,7 +168,7 @@ def cfsv2_etl(
         )
     ],
     output_path: Annotated[
-        str,
+        Path,
         Parameter(
             validator=valid_path,
             help="Output path (location of netcdf output files by shapefile output)",
@@ -176,7 +176,7 @@ def cfsv2_etl(
         )
     ],
     weight_file: Annotated[ 
-        str,
+        Path,
         Parameter(
             validator=valid_path,
             help="path/weight.csv - path/name of weight file",
@@ -184,7 +184,7 @@ def cfsv2_etl(
         )
     ],
     model_param_file: Annotated[ 
-        str,
+        Path,
         Parameter(
             validator=valid_path,
             help="path/myparam.param - path/name of model parameter file containing elevation per hru",
