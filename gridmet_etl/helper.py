@@ -29,7 +29,7 @@ def fill_onhm_ncf(
         lat ((Optional[str], optional): name of Latitude or y coordinate
         lon (Optional[bstrool], optional): Name of Longitude or x coordinate
     """
-    odir = Path(output_dir)
+    odir = Path(output_dir) if isinstance(output_dir, str) else output_dir
     if not odir.exists():
         print(f"Path: {odir} does not exist")
         exit
@@ -89,7 +89,7 @@ def fill_onhm_ncf(
     oldfile = Path(nfile)
     # Split the filename into the base name and extension
     base_name, extension = oldfile.stem, oldfile.suffix
-    new_base_name = base_name.replace("converted_", "converted_filled_")
+    new_base_name = base_name.replace("converted", "converted_filled_")
     newfile = odir / (new_base_name + extension)
     # newfile = odir / f"{oldfile.name[:-3]}_filled.nc"
 
@@ -115,33 +115,54 @@ def fill_onhm_ncf(
     data.to_netcdf(path=newfile, encoding=encoding)
     return True
 
-def read_elevation_values(filename):
+def read_elevation_values(filename: Path):
+    """
+    Reads elevation values from a specified file. The function extracts numerical elevation data 
+    that follows a specific header in the file and returns it as a list.
+
+    This function opens the given file, skips initial lines until it finds the 'hru_elev' header, 
+    and then collects all subsequent numerical values until it encounters a termination marker. 
+    It handles potential conversion errors gracefully by skipping invalid lines.
+
+    Args:
+        filename (Path): The path to the file containing elevation data.
+
+    Returns:
+        List[float]: A list of elevation values read from the file.
+
+    Raises:
+        FileNotFoundError: If the specified file does not exist.
+        ValueError: If a line cannot be converted to a float.
+    """
+    if not filename.is_file():
+        raise FileNotFoundError(f"The specified file '{filename}' does not exist or is not a file.")
+
     values = []  # List to store the elevation values
     start_collecting = False  # Flag to start collecting values
     count_values = 0  # To count the values read
-    
+
     with open(filename, 'r') as file:
         for line in file:
             stripped_line = line.strip()  # Remove any leading/trailing whitespace
-            
+
             if stripped_line == 'hru_elev':
                 # Skip the next four lines after 'hru_elev'
                 for _ in range(4):
                     next(file)
                 start_collecting = True  # Set flag to start collecting after skipping
                 continue
-            
+
             if stripped_line == '####' and start_collecting:
                 break  # Stop reading if we hit #### after starting to collect
-            
+
             if start_collecting:
                 try:
                     # Convert the line to a float and add to the list
                     value = float(stripped_line)
                     values.append(value)
                     count_values += 1
-                except ValueError:
-                    continue  # If conversion fails, skip the line
+                except ValueError as e:
+                    raise ValueError(f"Could not convert line to float: '{stripped_line}'") from e
         print(f"Read {count_values} elevation values")
     return values
 
