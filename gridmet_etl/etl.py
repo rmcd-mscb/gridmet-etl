@@ -531,7 +531,7 @@ class CFSv2ETL:
             for n in ds.ens.values:
                 dst = ds.sel(ens=n)
                 conv_f = self.optpath / f"{self.start_date}_converted_{int(n)}.nc"
-                ensemble_n_path = ensure_directory(self.ensemble_path / f"ensenble_{int(n)}")
+                ensemble_n_path = ensure_directory(self.ensemble_path / f"ensemble_{int(n)}")
                 self.process_dataset(
                     dst, var_rename, feature_id_rename, conv_f, ensemble_n_path, n
                 )
