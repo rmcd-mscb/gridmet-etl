@@ -486,6 +486,7 @@ class CFSv2ETL:
             lon="lon",
             feature_id="nhru",
             genmap=True,
+            ensemble=n
         )
         if not response:
             new_name = (

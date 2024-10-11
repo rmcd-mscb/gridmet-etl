@@ -15,6 +15,7 @@ def fill_onhm_ncf(
     var: Optional[str] = "",
     lat: Optional[str] = "",
     lon: Optional[str] = "",
+    ensemble: Optional[int] = -1
 ) -> bool:
     """Function uses nearest-neighbor, to fill missing feature values.
 
@@ -27,7 +28,8 @@ def fill_onhm_ncf(
         var (Optional[str], optional): Name of variable to process for generating
             nearest neighbors
         lat ((Optional[str], optional): name of Latitude or y coordinate
-        lon (Optional[bstrool], optional): Name of Longitude or x coordinate
+        lon (Optional[str], optional): Name of Longitude or x coordinate
+        ensemble(Optional[int], optional): Integer value of ensemble number, or -1 (default) it not esemble
     """
     odir = Path(output_dir) if isinstance(output_dir, str) else output_dir
     if not odir.exists():
@@ -89,7 +91,10 @@ def fill_onhm_ncf(
     oldfile = Path(nfile)
     # Split the filename into the base name and extension
     base_name, extension = oldfile.stem, oldfile.suffix
-    new_base_name = base_name.replace("converted", "converted_filled_")
+    if ensemble == -1:
+        new_base_name = base_name.replace("converted", "converted_filled")
+    else:
+        new_base_name = base_name.replace("converted", f"converted_filled_{ensemble}")
     newfile = odir / (new_base_name + extension)
     # newfile = odir / f"{oldfile.name[:-3]}_filled.nc"
 
