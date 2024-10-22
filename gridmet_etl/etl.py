@@ -439,7 +439,7 @@ class CFSv2ETL:
         feature_id_rename: dict,
         conversion_path: Path,
         fill_path: Path,
-        n: int = 0,
+        n: int = -1,
     ) -> None:
         """
         Process the dataset by renaming variables, converting units, and writing to a NetCDF file.
