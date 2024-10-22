@@ -467,7 +467,7 @@ class CFSv2ETL:
         if self.fillmissing:
             self.fill_missing_values(conversion_path, fill_path, n)
 
-    def fill_missing_values(self, conv_f: Path, output_dir: Path, n: int = 0) -> None:
+    def fill_missing_values(self, conv_f: Path, output_dir: Path, n: int = -1) -> None:
         """
         Fill missing values in the converted file and handle renaming if necessary.
 
