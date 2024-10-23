@@ -486,7 +486,7 @@ class CFSv2ETL:
             lon="lon",
             feature_id="nhru",
             genmap=True,
-            mode="cfsv2"
+            mode="cfsv2",
             ensemble=n
         )
         if not response:

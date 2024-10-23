@@ -98,7 +98,7 @@ def fill_onhm_ncf(
         else:
             new_base_name = base_name.replace("converted", "filled_converted")
     else:
-        new_base_name = base_name.replace("converted", f"filled_converted")
+        new_base_name = base_name.replace("converted", "filled_converted")
     newfile = odir / (new_base_name + extension)
     # newfile = odir / f"{oldfile.name[:-3]}_filled.nc"
 
