@@ -94,7 +94,7 @@ def fill_onhm_ncf(
     if ensemble == -1:
         new_base_name = base_name.replace("converted", "filled_converted_median")
     else:
-        new_base_name = base_name.replace("converted", f"filled_converted_{ensemble}")
+        new_base_name = base_name.replace("converted", f"filled_converted")
     newfile = odir / (new_base_name + extension)
     # newfile = odir / f"{oldfile.name[:-3]}_filled.nc"
 
