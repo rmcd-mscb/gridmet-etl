@@ -486,6 +486,7 @@ class CFSv2ETL:
             lon="lon",
             feature_id="nhru",
             genmap=True,
+            mode="cfsv2"
             ensemble=n
         )
         if not response:
@@ -764,6 +765,7 @@ class GridMetETL:
             lon="lon",
             feature_id="nhru",
             genmap=True,
+            mode="gridmet"
         )
         if not response:
             new_name = (

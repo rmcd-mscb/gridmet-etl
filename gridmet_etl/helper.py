@@ -15,6 +15,7 @@ def fill_onhm_ncf(
     var: Optional[str] = "",
     lat: Optional[str] = "",
     lon: Optional[str] = "",
+    mode: Optional[str] = "gridmet",
     ensemble: Optional[int] = -1
 ) -> bool:
     """Function uses nearest-neighbor, to fill missing feature values.
@@ -92,7 +93,10 @@ def fill_onhm_ncf(
     # Split the filename into the base name and extension
     base_name, extension = oldfile.stem, oldfile.suffix
     if ensemble == -1:
-        new_base_name = base_name.replace("converted", "filled_converted_median")
+        if mode == "csfv2":
+            new_base_name = base_name.replace("converted", "filled_converted_median")
+        else:
+            new_base_name = base_name.replace("converted", "filled_converted")
     else:
         new_base_name = base_name.replace("converted", f"filled_converted")
     newfile = odir / (new_base_name + extension)
