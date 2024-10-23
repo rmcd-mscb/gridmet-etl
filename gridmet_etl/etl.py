@@ -537,7 +537,7 @@ class CFSv2ETL:
                     dst, var_rename, feature_id_rename, conv_f, ensemble_n_path, n
                 )
         elif self.method == 1:
-            conv_f = self.optpath / f"{self.start_date}_converted_.nc"
+            conv_f = self.optpath / f"{self.start_date}_converted.nc"
             # median_path = self.ensure_directory(self.optpath / "ensemble_median" / self.start_date)
             self.process_dataset(
                 ds, var_rename, feature_id_rename, conv_f, self.median_path
