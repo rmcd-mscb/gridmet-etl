@@ -541,7 +541,7 @@ class CFSv2ETL:
             conv_f = self.optpath / f"{self.start_date}_converted.nc"
             # median_path = self.ensure_directory(self.optpath / "ensemble_median" / self.start_date)
             self.process_dataset(
-                ds, var_rename, feature_id_rename, conv_f, self.median_path
+                ds, var_rename, feature_id_rename, conv_f, self.median_path, -1
             )
 
         self.clean_intermediate_files()
@@ -769,7 +769,7 @@ class GridMetETL:
         )
         if not response:
             new_name = (
-                self.optpath / f"{self.start_date}_converted_filled.nc"
+                self.optpath / f"{self.start_date}_filled_converted.nc"
             )
             conv_f.rename(new_name)
             print(f"No missing values, converted file renamed to: {new_name}")
