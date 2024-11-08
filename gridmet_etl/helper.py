@@ -92,11 +92,8 @@ def fill_onhm_ncf(
     oldfile = Path(nfile)
     # Split the filename into the base name and extension
     base_name, extension = oldfile.stem, oldfile.suffix
-    if ensemble == -1:
-        if mode == "csfv2":
-            new_base_name = base_name.replace("converted", "filled_converted_median")
-        else:
-            new_base_name = base_name.replace("converted", "filled_converted")
+    if ensemble == -1 and mode == "cfsv2":
+        new_base_name = base_name.replace("converted", "filled_converted_median")
     else:
         new_base_name = base_name.replace("converted", "filled_converted")
     newfile = odir / (new_base_name + extension)
